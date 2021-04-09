@@ -1,0 +1,8 @@
+---
+
+# handlers file for k8s-master-role
+- name: restart docker service
+  service:
+          name: docker
+          state: restarted
+

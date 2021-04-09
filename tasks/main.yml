@@ -1,0 +1,53 @@
+          - name: Copying the kubernetes repo file 
+            copy:
+                    src: k8s.repo
+                    dest: /etc/yum.repos.d/kubernetes.repo
+          - name: Installing docker software 
+            package:
+                    name: "docker"
+                    state: present
+          - name: Enable and start the docker service
+            service:
+                    name: docker
+                    state: started
+                    enabled: yes
+          - name: installing kubelet kubeadm and kubectl 
+            package:
+                    name:
+                            -  kubectl
+                            -  kubeadm
+                            -  kubelet
+                            -  iproute-tc  
+                    state: present
+            register: x
+          - name: Enable the kubelet service
+            service:
+                    name: "kubelet"
+                    enabled: yes
+          - name: Configure /etc/docker/daemon.json file
+            copy:
+                    src: daemon.json
+                    dest: /etc/docker/daemon.json
+            notify: retstart docker service
+                          
+          - name: Clear the caches from system
+            shell: echo 3 > /proc/sys/vm/drop_caches
+
+          - name: configure k8s conf file at worker nodes
+            copy:
+                    src: k8s.conf
+                    dest: /etc/sysctl.d/k8s.conf
+          - shell: sysctl --system
+            register: z
+            ignore_errors: yes
+          - name: copy the token
+            copy:
+                    src: "{{ token_file }}"
+                    dest: join_token
+          - name: Joining the worker nodes to master
+            shell: |
+                    cat join_token | tail -2 > output.sh
+                    sh output.sh
+
+
+
